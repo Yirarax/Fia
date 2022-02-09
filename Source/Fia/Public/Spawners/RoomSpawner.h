@@ -31,12 +31,8 @@ class FIA_API ARoomSpawner : public AActor
 
 protected:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere);
-	TArray<TSubclassOf<ARoomBase>> NormalRooms;
-	UPROPERTY(BlueprintReadWrite, EditAnywhere);
-	TArray<TSubclassOf<ARoomBase>> Corridors;
-	UPROPERTY(BlueprintReadWrite, EditAnywhere);
-	TArray<TSubclassOf<ARoomBase>> End;
-
+	TMap<TSubclassOf<ARoomBase>, ERoomType> RoomClasses;
+	
 	UPROPERTY()
 	TArray<ARoomBase*> Rooms;
 
@@ -62,8 +58,9 @@ public:
 	UFUNCTION(CallInEditor)
 	void GenerateRooms();
 
-	void SpawnRoom(const ARoomBase* CurrentRoom, const ERoomType CurrentType);
+	void SpawnRoom(const ARoomBase* CurrentRoom, int32 CorridorCount);
 	
 	UFUNCTION(CallInEditor)
 	void CleanRooms();
+	static FString TypeToString(ERoomType Type);
 };

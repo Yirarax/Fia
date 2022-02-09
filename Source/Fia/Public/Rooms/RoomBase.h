@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/ArrowComponent.h"
+#include "Components/BoxComponent.h"
 #include "GameFramework/Actor.h"
 #include "RoomBase.generated.h"
 
@@ -15,7 +16,9 @@ class FIA_API ARoomBase : public AActor
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UArrowComponent* Facing;
-
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UBoxComponent* BoundingBox;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 GateNumber;
 	
@@ -32,4 +35,7 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 	int32 GetGates() const;
+
+	FVector GetBoundingBoxExtend() const;
+	FVector GetCenter() const;
 };

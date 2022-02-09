@@ -17,6 +17,12 @@ ARoomBase::ARoomBase()
 
 	SpawnCollisionHandlingMethod = ESpawnActorCollisionHandlingMethod::DontSpawnIfColliding;
 	Facing->SetMobility(EComponentMobility::Static);
+
+	BoundingBox = CreateDefaultSubobject<UBoxComponent>(TEXT("Bounding Box"));
+	BoundingBox->SetMobility(EComponentMobility::Static);
+	BoundingBox->SetupAttachment(Facing);
+	BoundingBox->SetRelativeLocation({-100, 100, 0});
+	BoundingBox->SetCollisionObjectType(ECC_GameTraceChannel2);
 	
 	GateNumber = 0;
 }
@@ -39,4 +45,14 @@ int32 ARoomBase::GetGates() const
 	TArray<UGateway*> Gateways;
 	GetComponents<UGateway>(Gateways);
 	return Gateways.Num();
+}
+
+FVector ARoomBase::GetBoundingBoxExtend() const
+{
+	return BoundingBox->GetUnscaledBoxExtent();
+}
+
+FVector ARoomBase::GetCenter() const
+{
+	return BoundingBox->GetRelativeLocation();
 }
