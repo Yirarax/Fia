@@ -12,6 +12,10 @@ class FIA_API UGateway : public UBillboardComponent
 {
 	GENERATED_BODY()
 
+protected:
+	UPROPERTY()
+	AActor* NextActor;
+	
 public:
 	// Sets default values for this component's properties
 	UGateway();
@@ -24,4 +28,7 @@ public:
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType,
 	                           FActorComponentTickFunction* ThisTickFunction) override;
+	bool IsFree() const;
+	void UseGateway(AActor* Actor);
+	void FreeGateway();
 };

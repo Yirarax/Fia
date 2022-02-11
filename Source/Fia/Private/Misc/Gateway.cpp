@@ -33,3 +33,17 @@ void UGateway::TickComponent(float DeltaTime, ELevelTick TickType, FActorCompone
 	// ...
 }
 
+bool UGateway::IsFree() const
+{
+	return NextActor != nullptr;
+}
+
+void UGateway::UseGateway(AActor* Actor)
+{
+	NextActor = Actor;
+}
+
+void UGateway::FreeGateway()
+{
+	NextActor = nullptr;
+}
