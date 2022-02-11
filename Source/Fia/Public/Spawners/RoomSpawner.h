@@ -3,18 +3,13 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "ObjectSpawners.h"
 #include "GameFramework/Actor.h"
 #include "GameFramework/PlayerStart.h"
 #include "Rooms/RoomBase.h"
 #include "RoomSpawner.generated.h"
 
-UENUM(BlueprintType)
-enum class ERoomType : uint8
-{
-	Room,
-	Corridor,
-	End
-};
+
 
 struct FSortRoomClasses
 {
@@ -30,8 +25,12 @@ class FIA_API ARoomSpawner : public AActor
 	GENERATED_BODY()
 
 protected:
+	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere);
-	TMap<TSubclassOf<ARoomBase>, ERoomType> RoomClasses;
+	UObjectSpawners* ObjectSpawner;
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere);
+	TArray<TSubclassOf<ARoomBase>> RoomClasses;
 	
 	UPROPERTY()
 	TArray<ARoomBase*> Rooms;
@@ -55,6 +54,9 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
+	UFUNCTION(CallInEditor)
+	void GenerateObjects() const;
+	
 	UFUNCTION(CallInEditor)
 	void GenerateRooms();
 

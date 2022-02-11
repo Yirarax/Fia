@@ -16,6 +16,8 @@ ARoomSpawner::ARoomSpawner()
 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = false;
 
+	ObjectSpawner = CreateDefaultSubobject<UObjectSpawners>(TEXT("Object Spawner"));
+	
 	RoomLimit = 15;
 	RoomCount = 0;
 }
@@ -32,15 +34,20 @@ void ARoomSpawner::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 }
 
+void ARoomSpawner::GenerateObjects() const
+{
+	if(ObjectSpawner) ObjectSpawner->SpawnObjects(Rooms);
+}
+
 void ARoomSpawner::GenerateRooms()
 {
 	CleanRooms();
 
 	for (const auto RoomClass : RoomClasses)
 	{
-		if (RoomClass.Value == ERoomType::Room)
+		if (ARoomBase::GetStaticRoomType(RoomClass) == ERoomType::Room)
 		{
-			ARoomBase* First = GetWorld()->SpawnActor<ARoomBase>(RoomClass.Key);
+			ARoomBase* First = GetWorld()->SpawnActor<ARoomBase>(RoomClass);
 			Rooms.Add(First);
 			First->AttachToActor(this, FAttachmentTransformRules::KeepWorldTransform);
 			RoomCount++;
@@ -64,7 +71,7 @@ void ARoomSpawner::GenerateRooms()
 	TArray<TSubclassOf<ARoomBase>> Ends;
 	for (auto Class : RoomClasses)
 	{
-		if(Class.Value == ERoomType::End) Ends.Add(Class.Key);
+		if(ARoomBase::GetStaticRoomType(Class) == ERoomType::End) Ends.Add(Class);
 	}
 	
 	for (const auto Room : Rooms)
@@ -72,6 +79,7 @@ void ARoomSpawner::GenerateRooms()
 		TArray<UGateway*> Gateways;
 		Room->GetComponents<UGateway>(Gateways);
 
+		if(Gateways.Num() <= 0) continue;
 		for (const auto Gateway : Gateways)
 		{
 			if(Gateway->IsFree()) SpawnRoom(Room, 0);
@@ -81,21 +89,23 @@ void ARoomSpawner::GenerateRooms()
 
 void ARoomSpawner::SpawnRoom(const ARoomBase* CurrentRoom, int32 CorridorCount)
 {
-	RoomClasses.KeySort(FSortRoomClasses());
+	RoomClasses.Sort(FSortRoomClasses());
 
 	TArray<UGateway*> Gateways;
 	CurrentRoom->GetComponents<UGateway>(Gateways);
 
 	TArray<ARoomBase*> LastSpawned;
 	
-	for (const auto Gateway : Gateways)
+	for (auto Gateway : Gateways)
 	{
 		bool bSpawnedAny = false;
 		const FRotator Rot = Gateway->GetComponentRotation();
-			
+
+		if(!Gateway->IsFree()) continue;
+		
 		for (auto RoomClass : RoomClasses)
 		{
-			const ARoomBase* RoomBase = Cast<ARoomBase>(RoomClass.Key.Get()->ClassDefaultObject);
+			const ARoomBase* RoomBase = Cast<ARoomBase>(RoomClass.Get()->ClassDefaultObject);
 			
 			FVector Bounds = Rot.RotateVector(RoomBase->GetBoundingBoxExtend());
 			FVector Origin = Gateway->GetComponentTransform().GetLocation() + Rot.RotateVector(RoomBase->GetCenter());
@@ -107,26 +117,26 @@ void ARoomSpawner::SpawnRoom(const ARoomBase* CurrentRoom, int32 CorridorCount)
 			if (!GetWorld()->SweepMultiByObjectType(Hits, Origin, Origin, FQuat(), QueryParams,
 			                                        FCollisionShape::MakeBox(Bounds * 0.98)))
 			{
-				if(RoomCount >= RoomLimit && RoomClass.Value != ERoomType::End) continue;
-				if(RoomClass.Value == RoomClasses.FindRef(CurrentRoom->GetClass()) && RoomClass.Value ==
+				if(RoomCount >= RoomLimit && ARoomBase::GetStaticRoomType(RoomClass) != ERoomType::End) continue;
+				if(ARoomBase::GetStaticRoomType(RoomClass) == CurrentRoom->GetRoomType() && ARoomBase::GetStaticRoomType(RoomClass) ==
 					ERoomType::Room) continue;
-				if(RoomClass.Value == ERoomType::Corridor && CorridorCount > 3)
+				if(ARoomBase::GetStaticRoomType(RoomClass) == ERoomType::Corridor && CorridorCount > 3)
 				{
 					UE_LOG(LogFiaRoomSpawners, Warning, TEXT("Spawner: ""%s"" - Path Limit Reached!"),
 							*GetName());
 					continue;
 				}
-				if(RoomCount < RoomLimit &&  RoomClass.Value == ERoomType::End) continue;
+				if(RoomCount < RoomLimit &&  ARoomBase::GetStaticRoomType(RoomClass) == ERoomType::End) continue;
 				
-				ARoomBase* Spawned = GetWorld()->SpawnActor<ARoomBase>(
-					RoomClass.Key, Gateway->GetComponentTransform());
-				if(RoomClass.Value == ERoomType::Corridor) CorridorCount++;
+				ARoomBase* Spawned = GetWorld()->SpawnActor<ARoomBase>(RoomClass, Gateway->GetComponentTransform());
+				Gateway->UseGateway(Spawned);
+				if(ARoomBase::GetStaticRoomType(RoomClass) == ERoomType::Corridor) CorridorCount++;
 				else CorridorCount = 0;
 				
 				if (!Spawned)
 				{
 					UE_LOG(LogFiaRoomSpawners, Error, TEXT("Spawner: ""%s"" - Tried Spawning Room: ""%s"" - Error!"),
-						*GetName(), *(RoomClass.Key->GetDefaultObject<ARoomBase>()->GetName()));
+						*GetName(), *(RoomClass->GetDefaultObject<ARoomBase>()->GetName()));
 					return;
 				}
 				//DrawDebugBox(GetWorld(), Origin, Bounds, LocalColour, false, 180, 2, 15);
@@ -136,9 +146,8 @@ void ARoomSpawner::SpawnRoom(const ARoomBase* CurrentRoom, int32 CorridorCount)
 				Rooms.Add(Spawned);
 				Spawned->AttachToActor(this, FAttachmentTransformRules::KeepWorldTransform);
 				UE_LOG(LogFiaRoomSpawners, Display, TEXT("Spawner: ""%s"" - Room Spawned: ""%s"" - Type: ""%s"" - %d / %d"),
-				*GetName(), *Spawned->GetName(), *TypeToString(RoomClass.Value) ,RoomCount, RoomLimit);
+				*GetName(), *Spawned->GetName(), *TypeToString(ARoomBase::GetStaticRoomType(RoomClass)) ,RoomCount, RoomLimit);
 				bSpawnedAny = true;
-				Gateway->UseGateway(Spawned);
 				LastSpawned.Add(Spawned);
 				break;
 			}

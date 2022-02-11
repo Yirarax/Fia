@@ -56,3 +56,13 @@ FVector ARoomBase::GetCenter() const
 {
 	return BoundingBox->GetRelativeLocation();
 }
+
+ERoomType ARoomBase::GetRoomType() const
+{
+	return RoomType;
+}
+
+ERoomType ARoomBase::GetStaticRoomType(const TSubclassOf<ARoomBase> Class)
+{
+	return Class->GetDefaultObject<ARoomBase>()->GetRoomType();
+}

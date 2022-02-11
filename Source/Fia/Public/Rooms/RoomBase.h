@@ -8,6 +8,14 @@
 #include "GameFramework/Actor.h"
 #include "RoomBase.generated.h"
 
+UENUM(BlueprintType)
+enum class ERoomType : uint8
+{
+	Room,
+	Corridor,
+	End
+};
+
 UCLASS()
 class FIA_API ARoomBase : public AActor
 {
@@ -21,6 +29,9 @@ protected:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 GateNumber;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	ERoomType RoomType;
 	
 public:
 	// Sets default values for this actor's properties
@@ -38,4 +49,7 @@ public:
 
 	FVector GetBoundingBoxExtend() const;
 	FVector GetCenter() const;
+
+	ERoomType GetRoomType() const;
+	static ERoomType GetStaticRoomType(TSubclassOf<ARoomBase> Class);
 };
